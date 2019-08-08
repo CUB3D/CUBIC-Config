@@ -27,7 +27,7 @@ RUN cargo build --release
 
 # Now, we need to build our _real_ Docker container.
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates sqlite-libs
 COPY --from=builder \
     /home/rust/src/target/x86_64-unknown-linux-musl/release/CUBIC_Config \
     /usr/local/bin/

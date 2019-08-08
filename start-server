@@ -1,0 +1,5 @@
+#!/bin/bash
+
+docker build -t cubic_config .
+# Remove -d for debugging
+docker run -d -p 8080:8089 cubic_config

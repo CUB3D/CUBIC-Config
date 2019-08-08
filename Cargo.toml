@@ -22,3 +22,5 @@ dotenv = "0.14.1"
 serde = { version = "1.0.98", features = ["derive"] }
 uuid = {version = "0.7.4", default-features = false, features = ["v4"]}
 #askama = "0.8.0"
+
+libsqlite3-sys = "*"
