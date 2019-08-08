@@ -13,7 +13,6 @@ use yew::services::fetch::Credentials::Include;
 
 #[macro_use]
 extern crate diesel;
-extern crate dotenv;
 
 #[macro_use]
 extern crate serde_derive;
@@ -21,6 +20,8 @@ extern crate serde_derive;
 mod models;
 mod schema;
 mod rest_api;
+
+use crate::rest_api::api_config_handle;
 
 fn start_db_connection() -> SqliteConnection {
     dotenv().ok();
