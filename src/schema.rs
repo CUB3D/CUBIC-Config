@@ -1,27 +1,27 @@
 table! {
     Layers (id) {
-        id -> Nullable<Integer>,
-        name -> Text,
-        condition -> Text,
+        id -> Integer,
+        name -> Varchar,
+        _condition -> Varchar,
         projectID -> Nullable<Integer>,
     }
 }
 
 table! {
     Projects (id) {
-        id -> Nullable<Integer>,
-        name -> Text,
-        projectUUID -> Text,
+        id -> Integer,
+        name -> Varchar,
+        projectUUID -> Varchar,
     }
 }
 
 table! {
     Property (id) {
-        id -> Nullable<Integer>,
-        name -> Text,
+        id -> Integer,
+        name -> Varchar,
         #[sql_name = "type"]
         type_ -> Nullable<Integer>,
-        value -> Nullable<Text>,
+        value -> Nullable<Varchar>,
         layerID -> Nullable<Integer>,
     }
 }

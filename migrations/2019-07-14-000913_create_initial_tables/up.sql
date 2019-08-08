@@ -1,22 +1,22 @@
 CREATE TABLE Projects (
-    id INTEGER UNIQUE PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    projectUUID VARCHAR NOT NULL UNIQUE
+    id INT UNIQUE PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    projectUUID VARCHAR(64) NOT NULL UNIQUE
 );
 
 CREATE TABLE Layers (
-    id INTEGER UNIQUE PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    condition VARCHAR NOT NULL,
-    projectID INTEGER,
+    id INT PRIMARY KEY NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    _condition VARCHAR(128) NOT NULL,
+    projectID INT,
     FOREIGN KEY(projectID) REFERENCES Projects(id)
 );
 
 create table Property (
-    id INTEGER UNIQUE PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    type INTEGER,
-    value VARCHAR,
-    layerID INTEGER,
+    id INT PRIMARY KEY NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    type INT,
+    value VARCHAR(256),
+    layerID INT,
     FOREIGN KEY(layerID) REFERENCES Layers(id)
 )

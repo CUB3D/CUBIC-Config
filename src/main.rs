@@ -1,7 +1,7 @@
 use actix_web::{HttpServer, App, middleware, web, http, HttpResponse, Error};
 use actix::{Actor, Context};
 use diesel::prelude::*;
-use diesel::sqlite::SqliteConnection;
+use diesel::mysql::MysqlConnection;
 use std::env;
 use dotenv::dotenv;
 use std::io::SeekFrom::Start;
@@ -12,6 +12,8 @@ use serde::Deserialize;
 
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate log;
 
 mod models;
 mod schema;
@@ -19,12 +21,12 @@ mod rest_api;
 
 use crate::rest_api::api_config_handle;
 
-fn start_db_connection() -> SqliteConnection {
+fn start_db_connection() -> MysqlConnection {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL")
         .expect("No DATABASE_URL set");
-    SqliteConnection::establish(&database_url)
+    MysqlConnection::establish(&database_url)
         .expect(&format!("Unable to connect to {}", database_url))
 }
 
@@ -108,10 +110,8 @@ fn main() -> std::io::Result<()> {
                 .route(web::get().to(root_handler)),
             )
             .service(web::resource("/project/{project_name}").to(handle_view_project))
+            .service(web::resource("/api/config/{id}").to(api_config_handle))
             .service(actix_files::Files::new("/", "./static/"))
-            .service(web::resource("/api/config/{id}")
-                .route(web::post().to(api_config_handle))
-            )
             .wrap(middleware::Logger::default())
     })
         .bind("0.0.0.0:8080").unwrap()

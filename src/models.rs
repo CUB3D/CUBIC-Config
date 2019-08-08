@@ -17,7 +17,7 @@ pub struct NewProject<'a> {
 pub struct Layers {
     pub id: i32,
     pub name: String,
-    pub condition: String,
+    pub _condition: String,
     pub projectID: i32
 }
 

@@ -14,13 +14,11 @@ json = "0.11.14"
 futures = "0.1.28"
 tokio = "0.1.22"
 
+log = "0.4.8"
 env_logger = "0.6.2"
-log = "0.4.0"
 
-diesel = { version = "1.4.2", default-features = false, features = ["sqlite"]}
+diesel = { version = "1.4.2", default-features = false, features = ["mysql"]}
 dotenv = "0.14.1"
 serde = { version = "1.0.98", features = ["derive"] }
 uuid = {version = "0.7.4", default-features = false, features = ["v4"]}
 #askama = "0.8.0"
-
-libsqlite3-sys = "*"
