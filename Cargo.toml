@@ -1,0 +1,24 @@
+[package]
+name = "CUBIC_Config"
+version = "0.1.0"
+authors = ["CUB3D <callumthom11@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "*"
+actix-web = "*"
+actix-files = "*"
+json = "*"
+futures = "*"
+tokio = "*"
+env_logger = "*"
+debug-rs = "*"
+yew = "*"
+diesel = { version = "*", default-features = false, features = ["sqlite"]}
+dotenv = "*"
+serde = "*"
+serde_derive = "*"
+uuid = {version = "*", default-features = false, features = ["v4"]}
+askama = "*"
