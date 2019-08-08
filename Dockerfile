@@ -3,12 +3,21 @@ ARG BASE_IMAGE=ekidd/rust-musl-builder:latest
 # Our first FROM statement declares the build environment.
 FROM ${BASE_IMAGE} AS builder
 
+RUN sudo apt update && sudo apt install -y libsqlite3-dev zlibc zlib1g zlib1g-dev
+
 # Add our source code.
+ADD Cargo.toml .
+
+# Create a dummy project for populating the cache
+RUN mkdir -p cache/src && echo "//AUTO GENERATED DUMMY FILE" > cache/src/lib.rs && cp Cargo.toml cache/src/
+RUN cd cache && cargo build --release
+
+ADD diesel.toml .
+
 ADD ./migrations/ ./migrations/
 ADD ./src/ ./src/
 ADD ./static/ ./static/
-ADD diesel.toml .
-ADD Cargo.toml .
+
 
 # Fix permissions on source code.
 RUN sudo chown -R rust:rust /home/rust

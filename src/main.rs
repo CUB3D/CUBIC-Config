@@ -1,5 +1,4 @@
 use actix_web::{HttpServer, App, middleware, web, http, HttpResponse, Error};
-use yew::services::fetch::StatusCode;
 use actix::{Actor, Context};
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
@@ -9,13 +8,10 @@ use std::io::SeekFrom::Start;
 use crate::models::NewProject;
 use actix_web::web::Form;
 use uuid::Uuid;
-use yew::services::fetch::Credentials::Include;
+use serde::Deserialize;
 
 #[macro_use]
 extern crate diesel;
-
-#[macro_use]
-extern crate serde_derive;
 
 mod models;
 mod schema;
@@ -34,7 +30,7 @@ fn start_db_connection() -> SqliteConnection {
 
 fn root_handler() -> Result<HttpResponse, Error> {
     Ok(
-        HttpResponse::build(StatusCode::OK)
+        HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(include_str!("../static/main.html"))
     )
@@ -77,7 +73,7 @@ struct ViewProjectExtractor {
 
 fn handle_view_project(params: Form<ViewProjectExtractor>) -> Result<HttpResponse, Error> {
     Ok(
-        HttpResponse::build(StatusCode::OK)
+        HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(include_str!("../static/project.html"))
     )
