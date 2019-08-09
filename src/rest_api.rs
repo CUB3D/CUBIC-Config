@@ -3,19 +3,70 @@ use actix_web::web::{Form, Path};
 use actix_web::Error;
 use serde::Deserialize;
 use json::object::Object;
+use crate::start_db_connection;
+use diesel::prelude::*;
+use crate::models::{Project, Layers as Layer};
+use diesel::sql_types::{Integer, Varchar, Nullable};
 
 #[derive(Deserialize)]
 pub struct ApiConfigHandleRequestData {
-    pub id: String
+    pub project_id: String,
+    pub device_id: String
+}
+
+pub fn get_project_layers(con: &MysqlConnection, project_name: &str) -> Vec<(String, i32)> {
+    use crate::schema::Layers;
+    use crate::schema::Projects;
+
+    let layers = Layers::table.inner_join(Projects::table)
+        .select((Layers::name, Layers::id))
+        .filter(Projects::projectUUID.eq(project_name))
+        .load(con);
+
+    layers.expect(&format!("Unable to fetch layers for {}", project_name))
+}
+
+pub fn get_layer_properties(con: &MysqlConnection, layer_id: i32) -> Vec<(String, Option<String>)> {
+    use crate::schema::Layers;
+    use crate::schema::Property;
+
+    let layers = Property::table.inner_join(Layers::table)
+        .select((Property::name, Property::value))
+        .filter(Layers::id.eq(layer_id))
+        .load(con);
+
+    layers.expect(&format!("Unable to fetch properties for layer {}", layer_id))
 }
 
 pub fn api_config_handle(
     params: Path<ApiConfigHandleRequestData>
 ) -> Result<HttpResponse, Error> {
+//    use crate::schema::{Projects, Layers, Property};
+//    use crate::models::Property as Prop;
+
+    let db_connection = start_db_connection();
+
+    let layers = get_project_layers(&db_connection, params.project_id.as_str());
+
+    println!("Found {} layers", layers.len());
+
+    let tmp: Vec<i32> = layers
+        .iter()
+        .filter(| layer | layer.0 == "Default".to_string())
+        .map(| layer | layer.1)
+        .collect();
+    let default_layer_id = tmp.first().expect("Unable to find default layer");
+
+    println!("Default layer id: {}", default_layer_id);
+
+    let properties = get_layer_properties(&db_connection, *default_layer_id);
 
     let mut o = json::JsonValue::new_object();
-    o["MAPBOX_TOKEN"] = "no".into();
 
+
+    for (name, value) in properties {
+        o[name] = value.into();
+    }
 
     let r = HttpResponse::Ok()
         .content_type("application/json")

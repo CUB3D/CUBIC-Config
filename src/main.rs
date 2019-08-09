@@ -5,7 +5,7 @@ use diesel::mysql::MysqlConnection;
 use std::env;
 use dotenv::dotenv;
 use std::io::SeekFrom::Start;
-use crate::models::NewProject;
+use crate::models::{NewProject, Layers, NewLayer, Project};
 use actix_web::web::Form;
 use uuid::Uuid;
 use serde::Deserialize;
@@ -45,12 +45,15 @@ struct CreateProject {
 
 fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Error> {
     use schema::Projects;
+    use schema::Layers;
+
     let data = params.into_inner();
 
     let db_connection = start_db_connection();
 
     let project_uuid = Uuid::new_v4().to_string();
 
+    // Add the project into the  db
     let new_project = NewProject {
         name: data.project_name.as_str(),
         projectUUID: project_uuid.as_str()
@@ -60,6 +63,26 @@ fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Er
         .values(&new_project)
         .execute(&db_connection)
         .expect("Unable to create project");
+
+    use self::schema::Projects::dsl::*;
+
+    // Get the project back so we can get the id
+    let x: Vec<Project> = Projects.filter(projectUUID.eq(project_uuid))
+        .limit(1)
+        .load(&db_connection)
+        .expect("Unable to retrieve new project");
+
+    // Add the default layer into the db
+    let default_layer = NewLayer {
+        name: "Default",
+        _condition: "",
+        projectID: x.first().unwrap().id
+    };
+
+    diesel::insert_into(Layers::table)
+        .values(&default_layer)
+        .execute(&db_connection)
+        .expect("Unable to add default layer");
 
     Ok(
         HttpResponse::PermanentRedirect()
@@ -110,7 +133,7 @@ fn main() -> std::io::Result<()> {
                 .route(web::get().to(root_handler)),
             )
             .service(web::resource("/project/{project_name}").to(handle_view_project))
-            .service(web::resource("/api/config/{id}").to(api_config_handle))
+            .service(web::resource("/api/config/{project_id}/{device_id}").to(api_config_handle))
             .service(actix_files::Files::new("/", "./static/"))
             .wrap(middleware::Logger::default())
     })
