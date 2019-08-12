@@ -3,7 +3,7 @@ table! {
         id -> Integer,
         name -> Varchar,
         _condition -> Varchar,
-        projectID -> Nullable<Integer>,
+        projectID -> Integer,
     }
 }
 
@@ -20,9 +20,9 @@ table! {
         id -> Integer,
         name -> Varchar,
         #[sql_name = "type"]
-        type_ -> Nullable<Integer>,
+        type_ -> Integer,
         value -> Nullable<Varchar>,
-        layerID -> Nullable<Integer>,
+        layerID -> Integer,
     }
 }
 

@@ -18,6 +18,7 @@ extern crate log;
 mod models;
 mod schema;
 mod rest_api;
+mod property_type;
 
 use crate::rest_api::api_config_handle;
 

@@ -8,15 +8,15 @@ CREATE TABLE Layers (
     id INT PRIMARY KEY NOT NULL,
     name VARCHAR(128) NOT NULL,
     _condition VARCHAR(128) NOT NULL,
-    projectID INT,
+    projectID INT NOT NULL,
     FOREIGN KEY(projectID) REFERENCES Projects(id)
 );
 
 create table Property (
     id INT PRIMARY KEY NOT NULL,
     name VARCHAR(128) NOT NULL,
-    type INT,
+    type INT NOT NULL,
     value VARCHAR(256),
-    layerID INT,
+    layerID INT NOT NULL,
     FOREIGN KEY(layerID) REFERENCES Layers(id)
 )

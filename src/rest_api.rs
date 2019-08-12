@@ -7,6 +7,10 @@ use crate::start_db_connection;
 use diesel::prelude::*;
 use crate::models::{Project, Layers as Layer};
 use diesel::sql_types::{Integer, Varchar, Nullable};
+use crate::property_type::PropertyType::{STRING, INT};
+use crate::property_type::{PropertyType, into_property_type};
+use std::ptr::null;
+use json::JsonValue;
 
 #[derive(Deserialize)]
 pub struct ApiConfigHandleRequestData {
@@ -26,12 +30,12 @@ pub fn get_project_layers(con: &MysqlConnection, project_name: &str) -> Vec<(Str
     layers.expect(&format!("Unable to fetch layers for {}", project_name))
 }
 
-pub fn get_layer_properties(con: &MysqlConnection, layer_id: i32) -> Vec<(String, Option<String>)> {
+pub fn get_layer_properties(con: &MysqlConnection, layer_id: i32) -> Vec<(String, Option<String>, i32)> {
     use crate::schema::Layers;
     use crate::schema::Property;
 
     let layers = Property::table.inner_join(Layers::table)
-        .select((Property::name, Property::value))
+        .select((Property::name, Property::value, Property::type_))
         .filter(Layers::id.eq(layer_id))
         .load(con);
 
@@ -63,9 +67,26 @@ pub fn api_config_handle(
 
     let mut o = json::JsonValue::new_object();
 
+    for (name, value, type_) in properties {
+        let property_type = into_property_type(type_);
 
-    for (name, value) in properties {
-        o[name] = value.into();
+        if let Some(val) = value {
+            match property_type {
+                STRING => {
+                    o[name] = val.into();
+                },
+                INT => {
+                    o[name] = val.parse::<i32>()
+                        .expect(&format!("Unable to convert {} into a int", val))
+                        .into();
+                }
+                _ => {
+                    o[name] = JsonValue::Null;
+                }
+            }
+        } else {
+            o[name] = JsonValue::Null;
+        }
     }
 
     let r = HttpResponse::Ok()

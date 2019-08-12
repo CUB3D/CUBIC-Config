@@ -15,9 +15,9 @@ ADD ./static/ ./static/
 #RUN chown -R rust:rust /home/rust
 
 # Build our application.
-RUN cargo build
+RUN cargo build --release
 
-CMD cargo run
+CMD cargo run --release
 
 #CMD /home/rust/src/target/x86_64-unknown-linux-musl/release/CUBIC_Config
 
