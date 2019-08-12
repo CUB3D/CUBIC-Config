@@ -10,6 +10,7 @@ ADD diesel.toml .
 ADD ./migrations/ ./migrations/
 ADD ./src/ ./src/
 ADD ./static/ ./static/
+ADD ./templates ./templates/
 
 # Fix permissions on source code.
 #RUN chown -R rust:rust /home/rust

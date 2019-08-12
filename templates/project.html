@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+  <h1>Properties for {{ project_name }}</h1>
+  <table>
+    <thead>
+    <tr>
+      <th>Property name</th>
+      <th>Property value</th>
+    </tr>
+    </thead>
+    <tbody>
+  {% for (name, value, _type) in props %}
+    <tr>
+      <td>{{ name }}</td>
+      <td>{{ value }}</td>
+    </tr>
+  {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

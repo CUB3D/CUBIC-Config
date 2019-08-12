@@ -4,11 +4,11 @@ use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
 use std::env;
 use dotenv::dotenv;
-use std::io::SeekFrom::Start;
-use crate::models::{NewProject, Layers, NewLayer, Project};
-use actix_web::web::Form;
+use crate::models::{NewProject, NewLayer, Project};
+use actix_web::web::{Path, Form};
 use uuid::Uuid;
 use serde::Deserialize;
+use askama::Template;
 
 #[macro_use]
 extern crate diesel;
@@ -20,7 +20,16 @@ mod schema;
 mod rest_api;
 mod property_type;
 
-use crate::rest_api::api_config_handle;
+use crate::rest_api::{api_config_handle, get_project_layers, get_layer_properties};
+use actix_web::middleware::BodyEncoding;
+use actix_web::error::UrlencodedError::ContentType;
+
+#[derive(Template)]
+#[template(path = "project.html")]
+struct ProjectTemplate<'a> {
+    project_name: &'a str,
+    props: Vec<(&'a str, &'a str, i32)>
+}
 
 fn start_db_connection() -> MysqlConnection {
     dotenv().ok();
@@ -97,11 +106,39 @@ struct ViewProjectExtractor {
     project_name: String
 }
 
-fn handle_view_project(params: Form<ViewProjectExtractor>) -> Result<HttpResponse, Error> {
+fn handle_view_project(params: Path<ViewProjectExtractor>) -> Result<HttpResponse, Error> {
+
+    let db = start_db_connection();
+
+    let layers = get_project_layers(&db, params.project_name.as_str());
+
+    let default_layer = layers.get(0).unwrap();
+    let default_layer_id = default_layer.1;
+
+    let properties = get_layer_properties(&db, default_layer_id);
+
+    let mut props: Vec<(&str, &str, i32)> = Vec::new();
+
+    for (name, value, type_) in &properties {
+
+        let value_str = match value {
+            Some(x) => x.as_str(),
+            None => "<undefined>"
+        };
+
+        props.push((name.as_str(), value_str, *type_))
+    }
+
+    let project = ProjectTemplate {
+        project_name: "test123123",
+        props
+    };
+
+    let content = project.render().unwrap();
+
     Ok(
         HttpResponse::Ok()
-            .content_type("text/html; charset=utf-8")
-            .body(include_str!("../static/project.html"))
+            .body(content)
     )
 }
 
