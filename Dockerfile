@@ -18,6 +18,8 @@ ADD ./templates ./templates/
 # Build our application.
 RUN cargo build --release
 
+COPY ./.env .
+
 CMD cargo run --release
 
 #CMD /home/rust/src/target/x86_64-unknown-linux-musl/release/CUBIC_Config
