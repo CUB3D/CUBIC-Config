@@ -19,8 +19,10 @@ mod models;
 mod schema;
 mod rest_api;
 mod property_type;
+mod api_user_auth;
 
 use crate::rest_api::{api_config_handle, get_project_layers, get_layer_properties};
+use crate::api_user_auth::api_auth_handle;
 use actix_web::middleware::BodyEncoding;
 use actix_web::error::UrlencodedError::ContentType;
 
@@ -173,6 +175,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(web::resource("/project/{project_name}").to(handle_view_project))
             .service(web::resource("/api/config/{project_id}/{device_id}").to(api_config_handle))
+            .service(web::resource("/api/user/auth/{user_token}").to(api_auth_handle))
             .service(actix_files::Files::new("/", "./static/"))
             .wrap(middleware::Logger::default())
     })

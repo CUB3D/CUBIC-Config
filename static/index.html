@@ -7,18 +7,17 @@
   <title>Project properties</title>
 </head>
 <body class="bg-dark">
-<button id="login">Login</button>
+<button id="CUBIC_LOGIN">Login</button>
 <script>
-    document.getElementById("login").onclick = function() {
-        let appDescription = {
-            APP_ID: "9kAw0wuU0JCPgAXGSSD942F2OkmHNMUQ",
-            callback: function(user) {
-                console.log("User logged in: " + user.username)
-            }
-        };
-
-        ukauth.oneClickLogin(appDescription);
+  let appDescription = {
+    APP_ID: "CJB3knsU61GYV1LhYz8MRYRG5nejMVjI",
+    callback: function(user) {
+      console.log("User logged in: " + user.username)
     }
+  };
+
+  ukauth.init(appDescription);
+    //http://localhost:8080/api/user/auth
 </script>
 </body>
 </html>
