@@ -44,7 +44,7 @@ fn root_handler() -> Result<HttpResponse, Error> {
     Ok(
         HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
-            .body(include_str!("../static/main.html"))
+            .body(include_str!("../static/index.html"))
     )
 }
 
@@ -165,6 +165,7 @@ fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(server.clone())
+            .service(web::resource("/").to(root_handler))
             .service(web::resource("/create-project")
                 .name("create_project")
                 .route(web::post().to(project_create_handle))
