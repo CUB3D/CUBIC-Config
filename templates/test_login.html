@@ -1,0 +1,18 @@
+<html>
+<head>
+  <script src="http://localhost:8081/resource/javascript/ukauth.js"></script>
+</head>
+<body>
+<button id="CUBIC_LOGIN">Login</button>
+<script>
+    let appDescription = {
+      APP_ID: "9kAw0wuU0JCPgAXGSSD942F2OkmHNMUQ",
+      callback: function(user) {
+          console.log("User logged in: " + user.username)
+      }
+    };
+
+    ukauth.init(appDescription);
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-use actix_web::{HttpServer, App, middleware, web, http, HttpResponse, Error};
+use actix_web::{HttpServer, App, middleware, web, http, HttpResponse, Error, HttpMessage, HttpRequest};
 use actix::{Actor, Context};
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
@@ -9,6 +9,13 @@ use actix_web::web::{Path, Form};
 use uuid::Uuid;
 use serde::Deserialize;
 use askama::Template;
+
+extern crate jsonwebtoken as jwt;
+#[macro_use]
+extern crate serde_derive;
+
+use jwt::errors::ErrorKind;
+use jwt::{decode, encode, Header, Validation, Algorithm, dangerous_unsafe_decode};
 
 #[macro_use]
 extern crate diesel;
@@ -26,6 +33,12 @@ use crate::api_user_auth::api_auth_handle;
 use actix_web::middleware::BodyEncoding;
 use actix_web::error::UrlencodedError::ContentType;
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    username: String,
+    userId: u32,
+}
+
 #[derive(Template)]
 #[template(path = "project.html")]
 struct ProjectTemplate<'a> {
@@ -42,11 +55,39 @@ fn start_db_connection() -> MysqlConnection {
         .expect(&format!("Unable to connect to {}", database_url))
 }
 
-fn root_handler() -> Result<HttpResponse, Error> {
+fn root_handler(
+    req: HttpRequest
+) -> Result<HttpResponse, Error> {
+
+    if let Some(auth) = req.cookie("UK_APP_AUTH") {
+        let token = auth.value();
+        println!("msg: {}", &token);
+
+//        let v
+
+
+        let validation = Validation::new(Algorithm::RS256);
+
+        let key = include_bytes!("../public.der");
+
+        let token_data = match dangerous_unsafe_decode::<Claims>(&token) { //}, key.as_ref(), &validation) {
+            Ok(c) => c,
+            Err(err) => match *err.kind() {
+                ErrorKind::InvalidToken => panic!("Token is invalid"), // Example on how to handle a specific error
+                ErrorKind::InvalidIssuer => panic!("Issuer is invalid"), // Example on how to handle a specific error
+                _ => panic!("Some other errors: {}", err),
+            },
+        };
+        println!("{:?}", token_data.claims);
+        println!("{:?}", token_data.header);
+    } else {
+        println!("No cookie");
+    }
+
     Ok(
         HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
-            .body(include_str!("../static/index.html"))
+            .body(include_str!("../templates/test_login.html"))
     )
 }
 
