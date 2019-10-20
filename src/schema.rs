@@ -12,6 +12,7 @@ table! {
         id -> Integer,
         name -> Varchar,
         projectUUID -> Varchar,
+        owner -> Unsigned<Integer>,
     }
 }
 

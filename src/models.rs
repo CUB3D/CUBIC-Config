@@ -5,14 +5,16 @@ use super::schema::Layers as LayersTable;
 pub struct Project {
     pub id: i32,
     pub name: String,
-    pub projectUUID: String
+    pub projectUUID: String,
+    pub owner: u32
 }
 
 #[derive(Insertable)]
 #[table_name="ProjectsTable"]
 pub struct NewProject<'a> {
     pub name: &'a str,
-    pub projectUUID: &'a str
+    pub projectUUID: &'a str,
+    pub owner: &'a u32
 }
 
 #[derive(Insertable)]

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="https://cdn.cub3d.pw/spectre/spectre.css" rel="stylesheet">
+  <title>Project properties</title>
+</head>
+<body class="bg-dark table-hover">
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Property name</th>
+      <th>Property value</th>
+    </tr>
+    </thead>
+    <tbody>
+  {% for (name, dummy) in project_details %}
+    <tr>
+      <td>{{ name }}</td>
+    </tr>
+  {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

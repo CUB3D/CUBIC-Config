@@ -1,0 +1,3 @@
+-- Your SQL goes here
+
+ALTER TABLE Projects ADD COLUMN owner INTEGER UNSIGNED NOT NULL;

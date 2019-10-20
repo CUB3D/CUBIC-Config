@@ -32,6 +32,10 @@ use crate::rest_api::{api_config_handle, get_project_layers, get_layer_propertie
 use crate::api_user_auth::api_auth_handle;
 use actix_web::middleware::BodyEncoding;
 use actix_web::error::UrlencodedError::ContentType;
+use actix_web::dev::Service;
+use futures::Future;
+use futures::future::ok;
+use actix_web::cookie::Cookie;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -39,11 +43,47 @@ struct Claims {
     userId: u32,
 }
 
+fn get_request_claims(req: HttpRequest) -> Option<Claims> {
+    if let Some(cookie) = req.cookie("UK_APP_AUTH") {
+        Some(get_cookie_claims(cookie))
+    } else {
+        None
+    }
+}
+
+fn get_cookie_claims(auth: Cookie) -> Claims {
+    let token = auth.value();
+    println!("msg: {}", &token);
+
+    let validation = Validation::new(Algorithm::RS256);
+
+    let key = include_bytes!("../public.der");
+
+    let token_data = match dangerous_unsafe_decode::<Claims>(&token) { //}, key.as_ref(), &validation) {
+        Ok(c) => c,
+        Err(err) => match *err.kind() {
+            ErrorKind::InvalidToken => panic!("Token is invalid"), // Example on how to handle a specific error
+            ErrorKind::InvalidIssuer => panic!("Issuer is invalid"), // Example on how to handle a specific error
+            _ => panic!("Some other errors: {}", err),
+        },
+    };
+    println!("{:?}", &token_data.claims);
+    println!("{:?}", token_data.header);
+
+    return token_data.claims;
+}
+
 #[derive(Template)]
 #[template(path = "project.html")]
 struct ProjectTemplate<'a> {
     project_name: &'a str,
     props: Vec<(&'a str, &'a str, i32)>
+}
+
+#[derive(Template)]
+#[template(path = "Index_ProjectsList.html")]
+struct ProjectListTemplate<'a> {
+    project_details: Vec<(&'a str, &'a str)>
 }
 
 fn start_db_connection() -> MysqlConnection {
@@ -57,38 +97,42 @@ fn start_db_connection() -> MysqlConnection {
 
 fn root_handler(
     req: HttpRequest
-) -> Result<HttpResponse, Error> {
+) -> impl Future<Item = HttpResponse, Error = Error> {
+    use schema::Projects;
+    use self::schema::Projects::dsl::*;
 
-    if let Some(auth) = req.cookie("UK_APP_AUTH") {
-        let token = auth.value();
-        println!("msg: {}", &token);
+    if let Some(claims) = get_request_claims(req) {
+        let db_connection = start_db_connection();
 
-//        let v
+        let user_projects: Vec<Project> = Projects.filter(owner.eq(claims.userId))
+            .load(&db_connection)
+            .expect("DATA");
 
+        println!("Found {} projects", &user_projects.len());
 
-        let validation = Validation::new(Algorithm::RS256);
+        let mut details = Vec::<(&str, &str)>::new();
 
-        let key = include_bytes!("../public.der");
+        for p in &user_projects {
+            details.push((p.name.as_str(), "Hmm"));
+        }
 
-        let token_data = match dangerous_unsafe_decode::<Claims>(&token) { //}, key.as_ref(), &validation) {
-            Ok(c) => c,
-            Err(err) => match *err.kind() {
-                ErrorKind::InvalidToken => panic!("Token is invalid"), // Example on how to handle a specific error
-                ErrorKind::InvalidIssuer => panic!("Issuer is invalid"), // Example on how to handle a specific error
-                _ => panic!("Some other errors: {}", err),
-            },
+        let project = ProjectListTemplate {
+            project_details: details
         };
-        println!("{:?}", token_data.claims);
-        println!("{:?}", token_data.header);
-    } else {
-        println!("No cookie");
-    }
 
-    Ok(
-        HttpResponse::Ok()
-            .content_type("text/html; charset=utf-8")
-            .body(include_str!("../templates/test_login.html"))
-    )
+        let content = project.render().unwrap();
+
+        ok(
+            HttpResponse::Ok()
+                .body(content)
+        )
+    } else {
+        ok(
+            HttpResponse::Ok()
+                .content_type("text/html; charset=utf-8")
+                .body(include_str!("../templates/test_login.html"))
+        )
+    }
 }
 
 #[derive(Deserialize)]
@@ -109,7 +153,8 @@ fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Er
     // Add the project into the  db
     let new_project = NewProject {
         name: data.project_name.as_str(),
-        projectUUID: project_uuid.as_str()
+        projectUUID: project_uuid.as_str(),
+        owner: &1
     };
 
     diesel::insert_into(Projects::table)
@@ -208,19 +253,43 @@ fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(server.clone())
-            .service(web::resource("/").to(root_handler))
+//            .wrap_fn(|req, srv| {
+//                let def = HttpResponse::Ok()
+//                            .content_type("text/html; charset=utf-8")
+//                            .body(include_str!("../templates/test_login.html"));
+//
+//                let res = srv.call(req).map(|res| {
+//                    println!("Hi from response");
+//                    res
+//                });
+//
+//                let x = req.cookie("UK_APP_AUTH").into_result();
+//                let y = x
+//                    .map_err(| x | ok(def))
+//                    .and_then(| x | ok(def));
+//
+//                let z = x.or
+//
+//                req.cookie("UK_APP_AUTH")
+//
+//
+//
+//                    })
+//            })
+            .service(web::resource("/").to_async(root_handler))
             .service(web::resource("/create-project")
                 .name("create_project")
                 .route(web::post().to(project_create_handle))
-                .route(web::get().to(root_handler)),
+                .route(web::get().to_async(root_handler)),
             )
             .service(web::resource("/project/{project_name}").to(handle_view_project))
             .service(web::resource("/api/config/{project_id}/{device_id}").to(api_config_handle))
             .service(web::resource("/api/user/auth/{user_token}").to(api_auth_handle))
             .service(actix_files::Files::new("/", "./static/"))
             .wrap(middleware::Logger::default())
+            .wrap(middleware::Compress::default())
     })
-        .bind("0.0.0.0:8080").unwrap()
+        .bind("0.0.0.0:8082").unwrap()
         .start();
 
     system.run()
