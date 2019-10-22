@@ -83,7 +83,7 @@ struct ProjectTemplate<'a> {
 #[derive(Template)]
 #[template(path = "Index_ProjectsList.html")]
 struct ProjectListTemplate<'a> {
-    project_details: Vec<(&'a str, &'a str)>
+    project_details: Vec<(&'a str, Vec<(String, String)>)>
 }
 
 fn start_db_connection() -> MysqlConnection {
@@ -110,10 +110,21 @@ fn root_handler(
 
         println!("Found {} projects", &user_projects.len());
 
-        let mut details = Vec::<(&str, &str)>::new();
+        let mut details = Vec::<(&str, Vec<(String, String)>)>::new();
 
         for p in &user_projects {
-            details.push((p.name.as_str(), "Hmm"));
+            let layers = get_project_layers(&db_connection, p.projectUUID.as_str());
+            let default = &layers[0];
+
+            let properties = get_layer_properties(&db_connection, default.1);
+
+            let mut props = Vec::<(String, String)>::new();
+
+            for prop in &properties {
+                props.push((prop.0.clone(), prop.1.clone().unwrap_or("NULL".to_string())))
+            }
+
+            details.push((p.name.as_str(), props));
         }
 
         let project = ProjectListTemplate {
@@ -289,7 +300,7 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
     })
-        .bind("0.0.0.0:8082").unwrap()
+        .bind("0.0.0.0:8083").unwrap()
         .start();
 
     system.run()
