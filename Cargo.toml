@@ -5,12 +5,11 @@ authors = ["CUB3D <callumthom11@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-actix = "0.8.3"
-actix-web = "1.0.5"
-actix-files = "0.1.4"
+actix-web = "2.0.0"
+actix-files = "0.2.1"
 json = "0.11.14"
 futures = "0.1.28"
-tokio = "0.1.22"
+tokio = { version = "0.2.11", features = ["full"] }
 
 log = "0.4.8"
 env_logger = "0.6.2"

@@ -8,7 +8,7 @@ pub struct UserAuthTokenExtractor {
     pub user_token: String,
 }
 
-pub fn api_auth_handle(params: Path<UserAuthTokenExtractor>) -> Result<HttpResponse, Error> {
+pub async fn api_auth_handle(params: Path<UserAuthTokenExtractor>) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .cookie(Cookie::new("auth", params.user_token.clone()))

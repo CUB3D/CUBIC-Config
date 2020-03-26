@@ -49,7 +49,7 @@ pub fn get_layer_properties(
     ))
 }
 
-pub fn api_config_handle(params: Path<ApiConfigHandleRequestData>) -> Result<HttpResponse, Error> {
+pub async fn api_config_handle(params: Path<ApiConfigHandleRequestData>) -> Result<HttpResponse, Error> {
     //    use crate::schema::{Projects, Layers, Property};
     //    use crate::models::Property as Prop;
 

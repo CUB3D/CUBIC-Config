@@ -80,10 +80,10 @@ struct ProjectListTemplate<'a> {
     project_details: Vec<(&'a str, Vec<(String, String)>)>,
 }
 
-fn root_handler(
+async fn root_handler(
     db: Data<MysqlConnection>,
     req: HttpRequest
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> Result<HttpResponse, Error> {
     use self::schema::Projects::dsl::*;
 
     if let Some(claims) = get_request_claims(req) {
@@ -118,9 +118,9 @@ fn root_handler(
 
         let content = project.render().unwrap();
 
-        ok(HttpResponse::Ok().body(content))
+        Ok(HttpResponse::Ok().body(content))
     } else {
-        ok(HttpResponse::Ok()
+        Ok(HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(include_str!("../templates/test_login.html")))
     }
@@ -131,7 +131,7 @@ struct CreateProject {
     project_name: String,
 }
 
-fn project_create_handle(
+async fn project_create_handle(
     db: Data<MysqlConnection>,
     params: Form<CreateProject>
 ) -> Result<HttpResponse, Error> {
@@ -188,7 +188,7 @@ struct ViewProjectExtractor {
     project_name: String,
 }
 
-fn handle_view_project(
+async fn handle_view_project(
     db: Data<MysqlConnection>,
     params: Path<ViewProjectExtractor>
 ) -> Result<HttpResponse, Error> {
@@ -221,33 +221,38 @@ fn handle_view_project(
     Ok(HttpResponse::Ok().body(content))
 }
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
     dotenv().ok();
 
-    let system = actix::System::new("RemoteConfig");
-
     HttpServer::new(move || {
         App::new()
             .data(start_db_connection())
-            .service(web::resource("/").to_async(root_handler))
+            .service(web::resource("/").route(
+                web::get().to(root_handler)
+            ))
             .service(
                 web::resource("/create-project")
                     .name("create_project")
                     .route(web::post().to(project_create_handle))
-                    .route(web::get().to_async(root_handler)),
+                    .route(web::get().to(root_handler)),
             )
-            .service(web::resource("/project/{project_name}").to(handle_view_project))
-            .service(web::resource("/api/config/{project_id}/{device_id}").to(api_config_handle))
-            .service(web::resource("/api/user/auth/{user_token}").to(api_auth_handle))
+            .service(web::resource("/project/{project_name}").route(
+                web::get().to(handle_view_project)
+            ))
+            .service(web::resource("/api/config/{project_id}/{device_id}").route(
+                web::get().to(api_config_handle)
+            ))
+            .service(web::resource("/api/user/auth/{user_token}").route(
+                web::get().to(api_auth_handle)
+            ))
             .service(actix_files::Files::new("/", "./static/"))
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
     })
-    .bind("0.0.0.0:8080")
-    .unwrap()
-    .start();
-
-    system.run()
+    .bind("0.0.0.0:8080").expect("Address not available")
+    .run()
+    .await
 }
