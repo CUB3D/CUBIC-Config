@@ -1,6 +1,5 @@
 use crate::models::{NewLayer, NewProject, Project};
-use actix::Actor;
-use actix_web::web::{Form, Path};
+use actix_web::web::{Form, Path, Data};
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
@@ -25,6 +24,7 @@ mod models;
 mod property_type;
 mod rest_api;
 mod schema;
+mod database;
 
 use crate::api_user_auth::api_auth_handle;
 use crate::rest_api::{api_config_handle, get_layer_properties, get_project_layers};
@@ -32,6 +32,7 @@ use crate::rest_api::{api_config_handle, get_layer_properties, get_project_layer
 use actix_web::cookie::Cookie;
 use futures::future::ok;
 use futures::Future;
+use crate::database::start_db_connection;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -79,23 +80,17 @@ struct ProjectListTemplate<'a> {
     project_details: Vec<(&'a str, Vec<(String, String)>)>,
 }
 
-fn start_db_connection() -> MysqlConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("No DATABASE_URL set");
-    MysqlConnection::establish(&database_url)
-        .expect(&format!("Unable to connect to {}", database_url))
-}
-
-fn root_handler(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Error> {
+fn root_handler(
+    db: Data<MysqlConnection>,
+    req: HttpRequest
+) -> impl Future<Item = HttpResponse, Error = Error> {
     use self::schema::Projects::dsl::*;
 
     if let Some(claims) = get_request_claims(req) {
-        let db_connection = start_db_connection();
 
         let user_projects: Vec<Project> = Projects
             .filter(owner.eq(claims.userId))
-            .load(&db_connection)
+            .load(db.get_ref())
             .expect("DATA");
 
         println!("Found {} projects", &user_projects.len());
@@ -103,10 +98,10 @@ fn root_handler(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Er
         let mut details = Vec::<(&str, Vec<(String, String)>)>::new();
 
         for p in &user_projects {
-            let layers = get_project_layers(&db_connection, p.projectUUID.as_str());
+            let layers = get_project_layers(db.get_ref(), p.projectUUID.as_str());
             let default = &layers[0];
 
-            let properties = get_layer_properties(&db_connection, default.1);
+            let properties = get_layer_properties(db.get_ref(), default.1);
 
             let mut props = Vec::<(String, String)>::new();
 
@@ -192,12 +187,14 @@ struct ViewProjectExtractor {
     project_name: String,
 }
 
-fn handle_view_project(params: Path<ViewProjectExtractor>) -> Result<HttpResponse, Error> {
-    let db = start_db_connection();
+fn handle_view_project(
+    db: Data<MysqlConnection>,
+    params: Path<ViewProjectExtractor>
+) -> Result<HttpResponse, Error> {
 
     let layers = get_project_layers(&db, params.project_name.as_str());
 
-    let default_layer = layers.get(0).unwrap();
+    let default_layer = layers.get(0).expect("No layers available");
     let default_layer_id = default_layer.1;
 
     let properties = get_layer_properties(&db, default_layer_id);
@@ -218,7 +215,7 @@ fn handle_view_project(params: Path<ViewProjectExtractor>) -> Result<HttpRespons
         props,
     };
 
-    let content = project.render().unwrap();
+    let content = project.render().expect("Render failed");
 
     Ok(HttpResponse::Ok().body(content))
 }
@@ -226,11 +223,13 @@ fn handle_view_project(params: Path<ViewProjectExtractor>) -> Result<HttpRespons
 fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
+    dotenv().ok();
 
     let system = actix::System::new("RemoteConfig");
 
     HttpServer::new(move || {
         App::new()
+            .data(start_db_connection())
             .service(web::resource("/").to_async(root_handler))
             .service(
                 web::resource("/create-project")
