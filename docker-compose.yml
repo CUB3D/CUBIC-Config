@@ -1,0 +1,10 @@
+version: '3'
+services:
+  config:
+    container_name: Config
+    build: .
+    environment:
+      DATABASE_URL: <TODO>
+    ports:
+      - "8089:8080"
+    restart: unless-stopped
