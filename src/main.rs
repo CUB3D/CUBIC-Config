@@ -10,11 +10,10 @@ use dotenv::dotenv;
 use jsonwebtoken::errors::ErrorKind;
 use jsonwebtoken::{dangerous_unsafe_decode, Algorithm, Validation};
 use serde::Deserialize;
-use std::env;
 use uuid::Uuid;
 
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 #[macro_use]
 extern crate diesel;
@@ -30,8 +29,6 @@ use crate::api_user_auth::api_auth_handle;
 use crate::rest_api::{api_config_handle, get_layer_properties, get_project_layers};
 
 use actix_web::cookie::Cookie;
-use futures::future::ok;
-use futures::Future;
 use crate::database::start_db_connection;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -221,13 +218,13 @@ async fn handle_view_project(
     Ok(HttpResponse::Ok().body(content))
 }
 
-#[tokio::main]
+#[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
-    dotenv().ok();
+    dotenv().expect("Unable to read environment");
 
-    HttpServer::new(move || {
+    HttpServer::new( || {
         App::new()
             .data(start_db_connection())
             .service(web::resource("/").route(

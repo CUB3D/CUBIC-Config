@@ -5,11 +5,11 @@ authors = ["CUB3D <callumthom11@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+actix-rt = "1.0.0"
 actix-web = "2.0.0"
 actix-files = "0.2.1"
 json = "0.11.14"
-futures = "0.1.28"
-tokio = { version = "0.2.11", features = ["full"] }
+tokio = { version = "0.2.13", features = ["full"] }
 
 log = "0.4.8"
 env_logger = "0.6.2"
@@ -18,7 +18,6 @@ diesel = { version = "1.4.2", default-features = false, features = ["mysql"]}
 dotenv = "0.14.1"
 
 serde = { version = "1.0.98", features = ["derive"] }
-serde_derive = "1"
 
 uuid = {version = "0.7.4", default-features = false, features = ["v4"]}
 
