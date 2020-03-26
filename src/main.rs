@@ -131,13 +131,14 @@ struct CreateProject {
     project_name: String,
 }
 
-fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Error> {
+fn project_create_handle(
+    db: Data<MysqlConnection>,
+    params: Form<CreateProject>
+) -> Result<HttpResponse, Error> {
     use schema::Layers;
     use schema::Projects;
 
     let data = params.into_inner();
-
-    let db_connection = start_db_connection();
 
     let project_uuid = Uuid::new_v4().to_string();
 
@@ -150,7 +151,7 @@ fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Er
 
     diesel::insert_into(Projects::table)
         .values(&new_project)
-        .execute(&db_connection)
+        .execute(db.get_ref())
         .expect("Unable to create project");
 
     use self::schema::Projects::dsl::*;
@@ -159,7 +160,7 @@ fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Er
     let x: Vec<Project> = Projects
         .filter(projectUUID.eq(project_uuid))
         .limit(1)
-        .load(&db_connection)
+        .load(db.get_ref())
         .expect("Unable to retrieve new project");
 
     // Add the default layer into the db
@@ -171,7 +172,7 @@ fn project_create_handle(params: Form<CreateProject>) -> Result<HttpResponse, Er
 
     diesel::insert_into(Layers::table)
         .values(&default_layer)
-        .execute(&db_connection)
+        .execute(db.get_ref())
         .expect("Unable to add default layer");
 
     Ok(HttpResponse::PermanentRedirect()
