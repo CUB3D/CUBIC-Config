@@ -1,26 +1,22 @@
 use actix_web::{HttpServer, App, middleware, web, http, HttpResponse, Error, HttpMessage, HttpRequest};
-use actix::{Actor, Context};
+use actix::{Actor};
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
 use std::env;
 use dotenv::dotenv;
-use crate::models::{NewProject, NewLayer, Project};
 use actix_web::web::{Path, Form};
 use uuid::Uuid;
 use serde::Deserialize;
 use askama::Template;
+use jsonwebtoken::errors::ErrorKind;
+use jsonwebtoken::{Validation, Algorithm, dangerous_unsafe_decode};
+use crate::models::{NewProject, NewLayer, Project};
 
-extern crate jsonwebtoken as jwt;
 #[macro_use]
 extern crate serde_derive;
 
-use jwt::errors::ErrorKind;
-use jwt::{decode, encode, Header, Validation, Algorithm, dangerous_unsafe_decode};
-
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate log;
 
 mod models;
 mod schema;
@@ -44,11 +40,7 @@ struct Claims {
 }
 
 fn get_request_claims(req: HttpRequest) -> Option<Claims> {
-    if let Some(cookie) = req.cookie("UK_APP_AUTH") {
-        Some(get_cookie_claims(cookie))
-    } else {
-        None
-    }
+    req.cookie("UK_APP_AUTH").map(| c | get_cookie_claims(c))
 }
 
 fn get_cookie_claims(auth: Cookie) -> Claims {
@@ -241,52 +233,14 @@ fn handle_view_project(params: Path<ViewProjectExtractor>) -> Result<HttpRespons
     )
 }
 
-struct RemoteConfigServer {}
-
-impl Actor for RemoteConfigServer {
-    type Context = Context<Self>;
-}
-
-impl Default for RemoteConfigServer {
-    fn default() -> Self {
-        RemoteConfigServer {}
-    }
-}
-
 fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
 
     let system = actix::System::new("RemoteConfig");
 
-    let server = RemoteConfigServer::default().start();
-
     HttpServer::new(move || {
         App::new()
-            .data(server.clone())
-//            .wrap_fn(|req, srv| {
-//                let def = HttpResponse::Ok()
-//                            .content_type("text/html; charset=utf-8")
-//                            .body(include_str!("../templates/test_login.html"));
-//
-//                let res = srv.call(req).map(|res| {
-//                    println!("Hi from response");
-//                    res
-//                });
-//
-//                let x = req.cookie("UK_APP_AUTH").into_result();
-//                let y = x
-//                    .map_err(| x | ok(def))
-//                    .and_then(| x | ok(def));
-//
-//                let z = x.or
-//
-//                req.cookie("UK_APP_AUTH")
-//
-//
-//
-//                    })
-//            })
             .service(web::resource("/").to_async(root_handler))
             .service(web::resource("/create-project")
                 .name("create_project")
@@ -300,7 +254,7 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
     })
-        .bind("0.0.0.0:8083").unwrap()
+        .bind("0.0.0.0:8080").unwrap()
         .start();
 
     system.run()
