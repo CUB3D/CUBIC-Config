@@ -17,6 +17,4 @@ ADD ./templates ./templates/
 # Build our application.
 RUN cargo build --release
 
-COPY ./.env .
-
 CMD cargo run --release
