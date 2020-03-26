@@ -30,8 +30,4 @@ table! {
 joinable!(Layers -> Projects (projectID));
 joinable!(Property -> Layers (layerID));
 
-allow_tables_to_appear_in_same_query!(
-    Layers,
-    Projects,
-    Property,
-);
+allow_tables_to_appear_in_same_query!(Layers, Projects, Property,);
