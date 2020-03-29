@@ -227,9 +227,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new( || {
         App::new()
             .data(start_db_connection())
-            .service(web::resource("/").route(
-                web::get().to(root_handler)
-            ))
+            .service(web::resource("/").to(root_handler))
             .service(
                 web::resource("/create-project")
                     .name("create_project")
