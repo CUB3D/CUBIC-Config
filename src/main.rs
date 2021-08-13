@@ -1,5 +1,5 @@
 use crate::models::{NewLayer, NewProject, Project};
-use actix_web::web::{Form, Path, Data};
+use actix_web::web::{Data, Form, Path};
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
@@ -19,17 +19,17 @@ extern crate serde;
 extern crate diesel;
 
 mod api_user_auth;
+mod database;
 mod models;
 mod property_type;
 mod rest_api;
 mod schema;
-mod database;
 
 use crate::api_user_auth::api_auth_handle;
 use crate::rest_api::{api_config_handle, get_layer_properties, get_project_layers};
 
-use actix_web::cookie::Cookie;
 use crate::database::start_db_connection;
+use actix_web::cookie::Cookie;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -77,14 +77,10 @@ struct ProjectListTemplate<'a> {
     project_details: Vec<(&'a str, Vec<(String, String)>)>,
 }
 
-async fn root_handler(
-    db: Data<MysqlConnection>,
-    req: HttpRequest
-) -> Result<HttpResponse, Error> {
+async fn root_handler(db: Data<MysqlConnection>, req: HttpRequest) -> Result<HttpResponse, Error> {
     use self::schema::Projects::dsl::*;
 
     if let Some(claims) = get_request_claims(req) {
-
         let user_projects: Vec<Project> = Projects
             .filter(owner.eq(claims.userId))
             .load(db.get_ref())
@@ -130,7 +126,7 @@ struct CreateProject {
 
 async fn project_create_handle(
     db: Data<MysqlConnection>,
-    params: Form<CreateProject>
+    params: Form<CreateProject>,
 ) -> Result<HttpResponse, Error> {
     use schema::Layers;
     use schema::Projects;
@@ -187,9 +183,8 @@ struct ViewProjectExtractor {
 
 async fn handle_view_project(
     db: Data<MysqlConnection>,
-    params: Path<ViewProjectExtractor>
+    params: Path<ViewProjectExtractor>,
 ) -> Result<HttpResponse, Error> {
-
     let layers = get_project_layers(&db, params.project_name.as_str());
 
     let default_layer = layers.get(0).expect("No layers available");
@@ -224,7 +219,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     dotenv().ok();
 
-    HttpServer::new( || {
+    HttpServer::new(|| {
         App::new()
             .data(start_db_connection())
             .service(web::resource("/").to(root_handler))
@@ -234,20 +229,22 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(project_create_handle))
                     .route(web::get().to(root_handler)),
             )
-            .service(web::resource("/project/{project_name}").route(
-                web::get().to(handle_view_project)
-            ))
-            .service(web::resource("/api/config/{project_id}/{device_id}").route(
-                web::get().to(api_config_handle)
-            ))
-            .service(web::resource("/api/user/auth/{user_token}").route(
-                web::get().to(api_auth_handle)
-            ))
+            .service(
+                web::resource("/project/{project_name}").route(web::get().to(handle_view_project)),
+            )
+            .service(
+                web::resource("/api/config/{project_id}/{device_id}")
+                    .route(web::get().to(api_config_handle)),
+            )
+            .service(
+                web::resource("/api/user/auth/{user_token}").route(web::get().to(api_auth_handle)),
+            )
             .service(actix_files::Files::new("/", "./static/"))
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
     })
-    .bind("0.0.0.0:8080").expect("Address not available")
+    .bind("0.0.0.0:8080")
+    .expect("Address not available")
     .run()
     .await
 }
