@@ -1,6 +1,6 @@
 FROM rust:latest
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y libmariadbclient-dev-compat zlibc zlib1g zlib1g-dev
+RUN apt-get update && apt-get upgrade -y && apt-get install -y libmariadbclient-dev-compat zlib1g zlib1g-dev
 
 RUN wget https://cdn.cub3d.pw/auth/public.pem && openssl rsa -pubin -inform PEM -in public.pem -outform DER -out public.der
 
