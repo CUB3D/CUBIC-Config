@@ -1,14 +1,12 @@
 use crate::models::{NewLayer, NewProject, Project};
 use actix_web::web::{Data, Form, Path};
-use actix_web::{
-    http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
-};
+use actix_web::{http, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use askama::Template;
 use diesel::mysql::MysqlConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
 use jsonwebtoken::errors::ErrorKind;
-use jsonwebtoken::{dangerous_unsafe_decode, Algorithm, Validation};
+use jsonwebtoken::{dangerous_insecure_decode, Algorithm, Validation};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -32,13 +30,14 @@ use crate::database::start_db_connection;
 use actix_web::cookie::Cookie;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 struct Claims {
     username: String,
     userId: u32,
 }
 
 fn get_request_claims(req: HttpRequest) -> Option<Claims> {
-    req.cookie("UK_APP_AUTH").map(|c| get_cookie_claims(c))
+    req.cookie("UK_APP_AUTH").map(get_cookie_claims)
 }
 
 fn get_cookie_claims(auth: Cookie) -> Claims {
@@ -49,7 +48,7 @@ fn get_cookie_claims(auth: Cookie) -> Claims {
 
     let _key = include_bytes!("../public.der");
 
-    let token_data = match dangerous_unsafe_decode::<Claims>(&token) {
+    let token_data = match dangerous_insecure_decode::<Claims>(token) {
         //}, key.as_ref(), &validation) {
         Ok(c) => c,
         Err(err) => match *err.kind() {
@@ -61,7 +60,7 @@ fn get_cookie_claims(auth: Cookie) -> Claims {
     println!("{:?}", &token_data.claims);
     println!("{:?}", token_data.header);
 
-    return token_data.claims;
+    token_data.claims
 }
 
 #[derive(Template)]
@@ -99,7 +98,10 @@ async fn root_handler(db: Data<MysqlConnection>, req: HttpRequest) -> Result<Htt
             let mut props = Vec::<(String, String)>::new();
 
             for prop in &properties {
-                props.push((prop.0.clone(), prop.1.clone().unwrap_or("NULL".to_string())))
+                props.push((
+                    prop.0.clone(),
+                    prop.1.clone().unwrap_or_else(|| "NULL".to_string()),
+                ))
             }
 
             details.push((p.name.as_str(), props));
@@ -169,10 +171,10 @@ async fn project_create_handle(
         .expect("Unable to add default layer");
 
     Ok(HttpResponse::PermanentRedirect()
-        .header(
+        .append_header((
             http::header::LOCATION,
             format!("/project/{}", data.project_name),
-        )
+        ))
         .finish())
 }
 
@@ -221,7 +223,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            .data(start_db_connection())
+            .app_data(Data::new(start_db_connection()))
             .service(web::resource("/").to(root_handler))
             .service(
                 web::resource("/create-project")

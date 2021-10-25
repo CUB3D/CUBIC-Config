@@ -1,4 +1,5 @@
 table! {
+    #[allow(non_snake_case)]
     Layers (id) {
         id -> Integer,
         name -> Varchar,
@@ -8,6 +9,7 @@ table! {
 }
 
 table! {
+    #[allow(non_snake_case)]
     Projects (id) {
         id -> Integer,
         name -> Varchar,
@@ -17,6 +19,7 @@ table! {
 }
 
 table! {
+    #[allow(non_snake_case)]
     Property (id) {
         id -> Integer,
         name -> Varchar,

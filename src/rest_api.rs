@@ -7,7 +7,7 @@ use crate::start_db_connection;
 use diesel::prelude::*;
 
 use crate::property_type::into_property_type;
-use crate::property_type::PropertyType::{INT, STRING};
+use crate::property_type::PropertyType::{Int, Str};
 
 use json::JsonValue;
 
@@ -27,7 +27,7 @@ pub fn get_project_layers(con: &MysqlConnection, project_name: &str) -> Vec<(Str
         .filter(Projects::projectUUID.eq(project_name))
         .load(con);
 
-    layers.expect(&format!("Unable to fetch layers for {}", project_name))
+    layers.unwrap_or_else(|_| panic!("Unable to fetch layers for {}", project_name))
 }
 
 pub fn get_layer_properties(
@@ -43,10 +43,7 @@ pub fn get_layer_properties(
         .filter(Layers::id.eq(layer_id))
         .load(con);
 
-    layers.expect(&format!(
-        "Unable to fetch properties for layer {}",
-        layer_id
-    ))
+    layers.unwrap_or_else(|_| panic!("Unable to fetch properties for layer {}", layer_id))
 }
 
 pub async fn api_config_handle(
@@ -63,7 +60,7 @@ pub async fn api_config_handle(
 
     let tmp: Vec<i32> = layers
         .iter()
-        .filter(|layer| layer.0 == "Default".to_string())
+        .filter(|layer| layer.0 == *"Default")
         .map(|layer| layer.1)
         .collect();
     let default_layer_id = tmp.first().expect("Unable to find default layer");
@@ -79,13 +76,13 @@ pub async fn api_config_handle(
 
         if let Some(val) = value {
             match property_type {
-                STRING => {
+                Str => {
                     o[name] = val.into();
                 }
-                INT => {
+                Int => {
                     o[name] = val
                         .parse::<i32>()
-                        .expect(&format!("Unable to convert {} into a int", val))
+                        .unwrap_or_else(|_| panic!("Unable to convert {} into a int", val))
                         .into();
                 }
                 _ => {

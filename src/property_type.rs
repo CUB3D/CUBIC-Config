@@ -1,15 +1,15 @@
-use crate::property_type::PropertyType::{INT, NULL, STRING};
+use crate::property_type::PropertyType::{Int, Null, Str};
 
 pub enum PropertyType {
-    NULL = 0,
-    STRING = 1,
-    INT = 2,
+    Null = 0,
+    Str = 1,
+    Int = 2,
 }
 
 pub fn into_property_type(val: i32) -> PropertyType {
     match val {
-        1 => STRING,
-        2 => INT,
-        _ => NULL,
+        1 => Str,
+        2 => Int,
+        _ => Null,
     }
 }
