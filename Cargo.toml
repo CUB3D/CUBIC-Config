@@ -21,6 +21,6 @@ serde = { version = "1.0.130", features = ["derive"] }
 
 uuid = {version = "0.8.2", default-features = false, features = ["v4"]}
 
-jsonwebtoken = "7.2.0"
+jsonwebtoken = "8.0.1"
 
 askama = "0.10.5"
